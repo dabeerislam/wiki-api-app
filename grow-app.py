@@ -7,8 +7,8 @@ app = Flask(__name__)
 WIKIPEDIA_API_URL = "https://en.wikipedia.org/w/api.php"
 
 # Define your endpoint
-@app.route('/pageview')
-def get_pageview_count():
+@app.route('/view_count', methods=['GET'])
+def view_count():
     article_title = request.args.get('article_title')
     year = request.args.get('year')
     month = request.args.get('month')
@@ -16,27 +16,38 @@ def get_pageview_count():
     if not article_title or not year or not month:
         return jsonify({"error": "Please provide article_title, year, and month."})
 
-    # Define parameters for the Wikipedia API request
+    try:
+        year = int(year)
+        month = int(month)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid year or month format"})
+
     params = {
         "action": "query",
         "format": "json",
         "prop": "pageviews",
         "titles": article_title,
-        "pvipdays": month,
         "pvipmetric": "unique-devices",
-        "pvipdays": 1,
-        "pviprange": f"{year}{month}01-{year}{month}31"
+        "pvipdays": f"{year}{month:02}01-{year}{month:02}31"
     }
 
-    # Make a request to Wikipedia API
     response = requests.get(WIKIPEDIA_API_URL, params=params)
     data = response.json()
-    
-    # Extract view count
-    page_id = list(data['query']['pages'].keys())[0]
-    view_count = data['query']['pages'][page_id]['pageviews'].get(f"{year}{month}01", 0)
 
-    return jsonify({"article_title": article_title, "year": year, "month": month, "view_count": view_count})
+    if 'query' in data:
+        page_id = list(data['query']['pages'].keys())[0]
+        page_views = data['query']['pages'][page_id]['pageviews']
+        view_count = page_views.get(f"{year}{month:02}01", 0)
+
+        response_data = {
+            "article_title": article_title,
+            "year": year,
+            "month": month,
+            "view_count": view_count
+        }
+        return jsonify(response_data)
+    else:
+        return jsonify({"error": "Failed to retrieve view count"})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
