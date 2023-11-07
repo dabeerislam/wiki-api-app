@@ -1,6 +1,10 @@
 # wiki-api-app
 This application has been containerized
+
+
 In order to build this application in docker, docker must be installed on the machine that will clone this repo
+
+
 Once the repo is cloned you can run the following command
 
 
